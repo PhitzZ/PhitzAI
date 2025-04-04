@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+set -e
+path=/usr/local/bin
+
+install_package() {
+    local package=$1
+    if ! command -v $package >/dev/null 2>&1; then
+        echo "$package not found, attempting to install..."
+        
+        if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y $package
+        elif command -v yum >/dev/null 2>&1; then
+            sudo yum install -y $package
+        elif command -v brew >/dev/null 2>&1; then
+            brew install $package
+        else
+            echo "Cannot install $package automatically. Please install it manually and try again."
+            exit 1
+        fi
+    fi
+}
+
+# Check and install required dependencies
+if ! command -v curl >/dev/null 2>&1; then
+    install_package curl
+fi
+
+install_package jq
+
+if [[ $(uname -s) != "Darwin" ]] && ! command -v xdg-open >/dev/null 2>&1; then
+    install_package xdg-utils
+fi
+
+if ! [ -z "$1" ]; then
+    path=$1
+fi
+
+echo "Download location: $path"
+
+if [ ! -w "$path" ]; then
+    SUDO="sudo"
+else
+    SUDO=""
+fi
+
+case $(uname -m) in
+    x86_64) ARCH="amd64"   ;;
+    i386 | i686) ARCH="i386"   ;;
+    arm64 | aarch64) ARCH="arm64"   ;;
+    *) echo "Unsupported architecture: $(uname -m)"; exit 1   ;;
+esac
+
+# Check if the system is macOS
+if [[ $(uname -s) == "Darwin" ]]; then
+    OS="darwin"
+else
+    OS="linux"
+fi
+
+[ -e /tmp/x-phitza ] && rm /tmp/x-phitza
+[ -e /tmp/phitzai ] && rm /tmp/phitzai
+
+echo "Operating System: ${OS}"
+echo -e "Processor Architecture: ${ARCH}\n"
+
+
+X_PHITZA_URL="https://github.com/PhitzZ/PhitzAI/releases/download/phitzai/x-phitza-${ARCH}"
+PHITZAI_URL="https://github.com/PhitzZ/PhitzAI/releases/download/phitzai/phitzai"
+
+echo -e "Downloading x-phitza...\n"
+curl -SL --progress-bar "$X_PHITZA_URL" -o /tmp/x-phitza
+
+echo -e "Downloading phitzai...\n"
+curl -SL --progress-bar "$PHITZAI_URL" -o /tmp/phitzai
+
+$SUDO mv /tmp/x-phitza $path/x-phitza 
+$SUDO mv /tmp/phitzai $path/
+
+if [ -d "$path" ]; then
+    $SUDO chmod +x $path/x-phitza
+    $SUDO chmod +x $path/phitzai
+elif [ -f "$path" ]; then
+    $SUDO chmod +x $path
+fi
+
+echo -e "Installed Successfully \n"
+
+if [[ $path != "/usr/local/bin" ]]; then
+    echo "Type: phitzai to run"
+else
+    echo -e "Type: phitzai to run"
+fi
