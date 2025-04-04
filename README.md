@@ -20,7 +20,7 @@ read /my/path/script.py
 ```
 **Analyze file:**
 ```
-read /my/path/test.txt
+analyze /my/path/test.txt
 ```
 **Generate Image:**
 ```
